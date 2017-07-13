@@ -1,0 +1,41 @@
+
+
+/*
+#mainscatter {
+    height: 30em;
+    background: black;
+}
+*/
+
+.cb {
+    font-family: verdana;
+    outline: none;
+}
+#cbHeader {
+    position: fixed;
+    top: 0.8em;
+    left: 1.2em;
+    background: rgba(0,0,0,0);
+    vertical-align: top;
+    display: inline-block;
+    z-index: 1000;
+}
+#cbSearchButton {
+    padding-top: 0.2em;
+    vertical-align: top;
+    line-height: 2em;
+}
+#cbSearchText {
+    width: 30em;
+    color: white;
+    background-color: #555555;
+    padding: 0.2em 0.5em;
+    border: none;
+    box-shadow: none;
+    vertical-align: top;
+    line-height: 2em;
+    display: none;
+}
+#cbSearchText.open {
+    display: inline-block;
+}
