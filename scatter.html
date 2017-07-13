@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+	
+	<title>Hierarchical Viewer ProtoType</title>
+
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+	<script src="./hexagons.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+
+
+	<style>
+        #mainscatter {
+            width: 100%;
+            height: 100%;
+            background: #8aacb8;
+        }
+
+        .plotter {
+            border: 2px solid;
+            padding: 20px;
+            width: 350px;
+            height: 50vh;
+            resize: both;
+            overflow: auto;ld
+        }
+	</style>
+
+	<style>body { padding: 0; margin: 0; } html, body, #mainscatter { height: 100vh; width: 100vw; }</style>
+</head>
+
+<body>
+
+	<div id="mainscatter"></div>
+
+	<script>
+
+	var MIN_SIZE = 6,
+			TRACES = {},
+			n_traces = 0;
+
+	var HttpClient = function() {
+		this.get = function(url, callback) {
+		    var httpRequest = new XMLHttpRequest();
+		    httpRequest.onreadystatechange = function() {
+		        if (httpRequest.readyState == 4 && httpRequest.status == 200)
+		            callback(JSON.parse(httpRequest.responseText));
+		    };
+
+		    httpRequest.open( "GET", url, true );
+		    httpRequest.send( null );
+		}
+	};
+
+    client = new HttpClient();
+
+    var data;
+
+    var myPlot = document.getElementById('mainscatter');
+
+	// Define the set up for the scatter plot.
+    var layout = {
+		hovermode: "closest",
+		margin : { // Make the plot fill the entire page.
+ 			t : 0,
+			r : 0,
+			l : 0,
+            b : 0,
+            autoexpand : false
+		},
+  		xaxis: { // Get rid of axis for more of a map feel.
+			autorange: true,
+			showgrid: false,
+			zeroline: false,
+			showline: false,
+			autotick: true,
+			ticks: '',
+			showticklabels: false
+		  },
+ 	    yaxis: { // Get rid of axis for more of a map feel.
+			autorange: true,
+			showgrid: false,
+			zeroline: false,
+			showline: false,
+			autotick: true,
+			ticks: '',
+			showticklabels: false
+	  	},
+		  paper_bgcolor: "#130c16",
+		  plot_bgcolor : "#130c16",
+		  dragmode: 'pan',
+		legend: {
+			yanchor : "top",
+			x: 1, // All the way left.
+			y: .96, // Controls how far down the legend of groups is.
+			orientation : "h" // Horizontal.
+		}
+	};
+	function new_search(text){
+		return console.log(text)
+	}
+	// Start off with showing the highest hierarchy.
+    client.get('http://127.0.0.1:5000/mapid/Pancan12-mRNA', function (res) {
+        data = res;
+        console.log("got data!");
+		console.log(data.cmin);
+
+		data.hoverinfo = "text+name";
+		data.type = "scatter";
+        data.mode = "markers";
+
+		data.marker = {"symbol" : "hexagon2-open-dot",
+		               "sizemin" : MIN_SIZE,
+			           "colorbar" : {
+						 x:0
+					   },
+			           "sizeref": 1.0,
+		               "sizemode": "area",
+			           "colorscale": 'Green',
+		               };
+		data.marker["size"] = data.size;
+		data.marker["color"] = data.color;
+		// Traces object makes sure we don't duplicate traces when adding on click.
+		TRACES[data.name] = n_traces; // Will be index in to the traces array
+        Plotly.newPlot(myPlot, [data], layout, {scrollZoom: true});
+		//console.log(myPlot.data);
+		myPlot.on("plotly_click", function(e) {
+			console.log("plotly click event", e);
+			// Grab the index of the clicked point to access variables of node clicked.
+			var pointNumber = e.points[0].pointNumber;
+			// If it has a url that exands it, do so..
+			if (e.points[0].data.expand_url) {
+				var expand_url = e.points[0].data.expand_url[pointNumber];
+				console.log(expand_url);
+
+				client.get(expand_url, function (res) {
+					if (res.name in TRACES) {
+					} else {
+						n_traces += 1;
+						TRACES[res.name] = n_traces;
+						//console.log(res);
+						data = res;
+
+						console.log("got data!");
+						data.type = "scatter";
+						data.mode = "markers";
+						data.marker = {
+							"symbol": "hexagon2-open-dot",
+							"sizemin": MIN_SIZE,
+							"sizeref": 1.0,
+							"sizemode": "area"
+						};
+						data.marker["size"] = data.size;
+
+						Plotly.addTraces(myPlot, [data])
+					}
+				});
+			}
+
+		});
+
+        myPlot.on("plotly_selected", function(e, v) {
+            console.log("plotly selection event", e);
+			var xrange = e.range.x;
+			var yrange = e.range.y;
+			var expand_url = "http://127.0.0.1:5000/mapid/Pancan12-mRNA/space/";
+			expand_url = expand_url + xrange[0] + ";" +xrange[1] + ";"+yrange[0] + ";" + yrange[1];
+			console.log(expand_url);
+			client.get(expand_url, function (res) {
+				if (res.name in TRACES) {
+				} else {
+					n_traces+=1;
+					TRACES[res.name] = n_traces;
+					//console.log(res);
+					data = res;
+
+					console.log("got data!");
+					data.type = "scatter";
+					data.mode = "markers";
+					data.marker = {
+						"symbol": "hexagon2-open-dot",
+						"sizemin": MIN_SIZE,
+						"sizeref": 1.0,
+						"sizemode": "area"
+					};
+					data.marker["size"] = data.size;
+					console.log(data);
+					Plotly.addTraces(myPlot, [data])
+				}
+			});
+        });
+        console.log("drawn!");
+
+	});
+	</script>
+
+
+</body>
+</html>
